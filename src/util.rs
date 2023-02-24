@@ -9,7 +9,7 @@ use curve25519_dalek::scalar::Scalar;
 use zeroize::Zeroize;
 
 use crate::inner_product_proof::inner_product;
-use std::cmp::{max, min};
+use core::cmp::{max, min};
 
 /// Represents a degree-1 vector polynomial \\(\mathbf{a} + \mathbf{b} \cdot x\\).
 pub struct VecPoly1(pub Vec<Scalar>, pub Vec<Scalar>);

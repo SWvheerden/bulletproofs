@@ -378,7 +378,7 @@ impl<T: BorrowMut<Transcript>> Verifier<T> {
 
         use crate::inner_product_proof::inner_product;
         use crate::util;
-        use std::iter;
+        use core::iter;
 
         if bp_gens.gens_capacity < padded_n {
             return Err(R1CSError::InvalidGeneratorsLength);

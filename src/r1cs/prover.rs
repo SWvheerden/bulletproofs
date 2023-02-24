@@ -400,7 +400,7 @@ impl<'g, T: BorrowMut<Transcript>> Prover<'g, T> {
         bp_gens: &BulletproofGens,
     ) -> Result<(R1CSProof, T), R1CSError> {
         use crate::util;
-        use std::iter;
+        use core::iter;
 
         // Commit a length _suffix_ for the number of high-level variables.
         // We cannot do this in advance because user can commit variables one-by-one,

@@ -21,8 +21,8 @@ use crate::generators::{BulletproofGens, PedersenGens};
 use crate::inner_product_proof::InnerProductProof;
 use crate::transcript::TranscriptProtocol;
 use crate::util;
-use blake2::{Blake2b, Digest};
-
+use blake2::{Blake2bMac512, Digest,Blake2b512};
+use digest::FixedOutput;
 use crate::util::{add_bytes_to_word, bytes_to_usize, xor_32_bytes};
 use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_TABLE};
 use rand_core::{CryptoRng, RngCore};
@@ -228,8 +228,8 @@ impl RangeProof {
     /// );
     ///
     /// // A third party may have access to the public keys and extra data for range proof rewinding
-    /// let pub_rewind_key_1 = RistrettoPoint::from(&pvt_rewind_key * &RISTRETTO_BASEPOINT_TABLE).compress();
-    /// let pub_rewind_key_2 = RistrettoPoint::from(&pvt_blinding_key * &RISTRETTO_BASEPOINT_TABLE).compress();
+    /// let pub_rewind_key_1 = RistrettoPoint::from(&pvt_rewind_key * RISTRETTO_BASEPOINT_TABLE).compress();
+    /// let pub_rewind_key_2 = RistrettoPoint::from(&pvt_blinding_key * RISTRETTO_BASEPOINT_TABLE).compress();
     ///
     /// // The rewind nonce is necessary to rewind the range proof, which is uniquely bound to the commitment
     /// let rewind_nonce_1 = get_rewind_nonce_from_pub_key(&pub_rewind_key_1, &committed_value);
@@ -652,7 +652,7 @@ impl RangeProof {
         let basepoint_scalar = w * (self.t_x - a * b) + c * (delta(n, m, &y, &z) - self.t_x);
 
         let mega_check = RistrettoPoint::optional_multiscalar_mul(
-            iter::once(Scalar::one())
+            iter::once(Scalar::ONE)
                 .chain(iter::once(x))
                 .chain(iter::once(c * x))
                 .chain(iter::once(c * x * x))
@@ -750,11 +750,11 @@ impl RangeProof {
         let T_1 = CompressedRistretto(read32(&slice[2 * 32..]));
         let T_2 = CompressedRistretto(read32(&slice[3 * 32..]));
 
-        let t_x = Scalar::from_canonical_bytes(read32(&slice[4 * 32..]))
+        let t_x = Into::<Option<Scalar>>::into(Scalar::from_canonical_bytes(read32(&slice[4 * 32..])))
             .ok_or(ProofError::FormatError)?;
-        let t_x_blinding = Scalar::from_canonical_bytes(read32(&slice[5 * 32..]))
+        let t_x_blinding = Into::<Option<Scalar>>::into(Scalar::from_canonical_bytes(read32(&slice[5 * 32..])))
             .ok_or(ProofError::FormatError)?;
-        let e_blinding = Scalar::from_canonical_bytes(read32(&slice[6 * 32..]))
+        let e_blinding = Into::<Option<Scalar>>::into(Scalar::from_canonical_bytes(read32(&slice[6 * 32..])))
             .ok_or(ProofError::FormatError)?;
 
         let ipp_proof = InnerProductProof::from_bytes(&slice[7 * 32..])?;
@@ -950,7 +950,7 @@ fn delta(n: usize, m: usize, y: &Scalar, z: &Scalar) -> Scalar {
 
 /// Calculate a rewind nonce from a private key and the value commitment.
 pub fn get_rewind_nonce_from_pvt_key(pvt_key: &Scalar, commitment: &CompressedRistretto) -> Scalar {
-    let pub_key = (pvt_key * &RISTRETTO_BASEPOINT_TABLE).compress();
+    let pub_key = (pvt_key * RISTRETTO_BASEPOINT_TABLE).compress();
     get_rewind_nonce_from_pub_key(&pub_key, commitment)
 }
 
@@ -960,37 +960,39 @@ pub fn get_rewind_nonce_from_pub_key(
     commitment: &CompressedRistretto,
 ) -> Scalar {
     let rewind_nonce_initial =
-        Blake2b::with_params(&pub_key.to_bytes().as_ref(), &[], "Rewind sep 1".as_bytes())
-            .finalize();
+    Blake2bMac512::new_with_salt_and_personal(&pub_key.to_bytes().as_ref(), &[], "Rewind sep 1".as_bytes()).expect("should not fail blake2b rewind_nonce_initial").finalize_fixed();
     let rewind_nonce_data = [
         rewind_nonce_initial.to_vec().as_slice(),
         commitment.to_bytes().as_ref(),
     ]
     .concat();
-    let rewind_nonce_final = Blake2b::with_params(
-        &Blake2b::digest(&rewind_nonce_data),
+    let rewind_nonce_final = Blake2bMac512::new_with_salt_and_personal(
+        &Blake2b512::digest(&rewind_nonce_data),
         &[],
         "Rewind sep 2".as_bytes(),
-    );
-    Scalar::from_hash(rewind_nonce_final)
+    ).expect("should not fail blake2b rewind_nonce_final").finalize_fixed();
+    let mut output = [0u8; 64];
+        output.copy_from_slice(rewind_nonce_final.as_slice());
+        Scalar::from_bytes_mod_order_wide(&output)
 }
 
 /// Calculate a secret nonce from a private key and the value commitment.
 pub fn get_secret_nonce_from_pvt_key(pvt_key: &Scalar, commitment: &CompressedRistretto) -> Scalar {
     let secret_nonce_initial =
-        Blake2b::with_params(&pvt_key.to_bytes().as_ref(), &[], "Secret sep 1".as_bytes())
-            .finalize();
+    Blake2bMac512::new_with_salt_and_personal(&pvt_key.to_bytes().as_ref(), &[], "Secret sep 1".as_bytes()).expect("should not fail blake2b secret_nonce_initial").finalize_fixed();
     let secret_nonce_data = [
         secret_nonce_initial.to_vec().as_slice(),
         commitment.to_bytes().as_ref(),
     ]
     .concat();
-    let secret_nonce_final = Blake2b::with_params(
-        &Blake2b::digest(&secret_nonce_data),
+    let secret_nonce_final= Blake2bMac512::new_with_salt_and_personal(
+        &Blake2b512::digest(&secret_nonce_data),
         &[],
         "Secret sep 2".as_bytes(),
-    );
-    Scalar::from_hash(secret_nonce_final)
+    ).expect("should not fail blake2b secret_nonce_final").finalize_fixed();
+    let mut output = [0u8; 64];
+        output.copy_from_slice(secret_nonce_final.as_slice());
+        Scalar::from_bytes_mod_order_wide(&output)
 }
 
 #[cfg(test)]
@@ -1012,9 +1014,9 @@ mod tests {
         // code copied from previous implementation
         let z2 = z * z;
         let z3 = z2 * z;
-        let mut power_g = Scalar::zero();
-        let mut exp_y = Scalar::one(); // start at y^0 = 1
-        let mut exp_2 = Scalar::one(); // start at 2^0 = 1
+        let mut power_g = Scalar::ZERO;
+        let mut exp_y = Scalar::ONE; // start at y^0 = 1
+        let mut exp_2 = Scalar::ONE; // start at 2^0 = 1
         for _ in 0..n {
             power_g += (z - z2) * exp_y - z3 * exp_2;
 
@@ -1051,7 +1053,7 @@ mod tests {
 
             // 0. Create witness data
             let (min, max) = (0u64, ((1u128 << n) - 1) as u64);
-            let values: Vec<u64> = (0..m).map(|_| rng.gen_range(min, max)).collect();
+            let values: Vec<u64> = (0..m).map(|_| rng.gen_range(min..max)).collect();
             let blindings: Vec<Scalar> = (0..m).map(|_| Scalar::random(&mut rng)).collect();
 
             // 1. Create the proof
@@ -1289,7 +1291,7 @@ mod tests {
             dealer.receive_poly_commitments(vec![poly_com0]).unwrap();
 
         // But now simulate a malicious dealer choosing x = 0
-        poly_challenge.x = Scalar::zero();
+        poly_challenge.x = Scalar::ZERO;
 
         let maybe_share0 = party0.apply_challenge(&poly_challenge);
 
@@ -1304,7 +1306,7 @@ mod tests {
             224, 1, 145, 79, 3, 28, 84, 255, 124, 182, 63, 105, 2,
         ]);
         let pub_rewind_key =
-            RistrettoPoint::from(&pvt_rewind_key * &RISTRETTO_BASEPOINT_TABLE).compress();
+            RistrettoPoint::from(&pvt_rewind_key * RISTRETTO_BASEPOINT_TABLE).compress();
         let committed_value = CompressedRistretto::from_slice(
             [
                 208, 101, 226, 203, 8, 161, 147, 169, 30, 0, 90, 57, 238, 214, 80, 108, 172, 123,
@@ -1312,7 +1314,7 @@ mod tests {
             ]
             .to_vec()
             .as_slice(),
-        );
+        ).unwrap();
 
         assert_eq!(
             get_rewind_nonce_from_pub_key(&pub_rewind_key, &committed_value),
@@ -1342,13 +1344,13 @@ mod tests {
         // Dynamic data
         let pvt_rewind_key = Scalar::random(&mut thread_rng());
         let pub_rewind_key =
-            RistrettoPoint::from(&pvt_rewind_key * &RISTRETTO_BASEPOINT_TABLE).compress();
+            RistrettoPoint::from(&pvt_rewind_key * RISTRETTO_BASEPOINT_TABLE).compress();
         let committed_value = CompressedRistretto::from_slice(
             Scalar::random(&mut thread_rng())
                 .as_bytes()
                 .to_vec()
                 .as_slice(),
-        );
+        ).unwrap();
 
         assert_eq!(
             get_rewind_nonce_from_pub_key(&pub_rewind_key, &committed_value),

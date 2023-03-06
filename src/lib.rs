@@ -8,7 +8,7 @@
 
 extern crate alloc;
 
-#[macro_use]
+#[cfg(feature = "serde")]
 extern crate serde_derive;
 
 mod util;

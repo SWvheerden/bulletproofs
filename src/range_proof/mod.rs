@@ -26,7 +26,11 @@ use digest::FixedOutput;
 use crate::util::{add_bytes_to_word, bytes_to_usize, xor_32_bytes};
 use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_COMPRESSED, RISTRETTO_BASEPOINT_TABLE};
 use rand_core::{CryptoRng, RngCore};
+
+#[cfg(feature = "serde")]
 use serde::de::Visitor;
+
+#[cfg(feature = "serde")]
 use serde::{self, Deserialize, Deserializer, Serialize, Serializer};
 
 // Modules for MPC protocol
@@ -894,6 +898,8 @@ impl RangeProof {
     }
 }
 
+
+#[cfg(feature = "serde")]
 impl Serialize for RangeProof {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -903,6 +909,8 @@ impl Serialize for RangeProof {
     }
 }
 
+
+#[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for RangeProof {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

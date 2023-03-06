@@ -40,6 +40,7 @@ rand_chacha = "0.3"
 [features]
 default = ["std", "yoloproofs", "serialize"]
 yoloproofs = []
+alloc = ["curve25519-dalek/alloc"]
 std = ["rand", "rand/std", "rand/std_rng", "thiserror"]
 nightly = [ "curve25519-dalek/alloc", "subtle/nightly"]
 docs = ["nightly"]

@@ -8,6 +8,7 @@ extern crate rand;
 #[cfg(feature = "std")]
 use self::rand::thread_rng;
 use alloc::vec::Vec;
+use crate::alloc::borrow::ToOwned;
 
 use core::iter;
 

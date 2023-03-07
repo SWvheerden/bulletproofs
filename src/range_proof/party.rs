@@ -46,10 +46,10 @@ impl Party {
         proof_message: Scalar,
     ) -> Result<PartyAwaitingPosition<'a>, MPCError> {
         if !(n == 8 || n == 16 || n == 32 || n == 64) {
-            return Err(MPCError::InvalidBitsize);
+            return Err(MPCError::MPCInvalidBitsize{});
         }
         if bp_gens.gens_capacity < n {
-            return Err(MPCError::InvalidGeneratorsLength);
+            return Err(MPCError::MPCInvalidGeneratorsLength{});
         }
 
         let V = pc_gens.commit(v.into(), v_blinding).compress();
@@ -120,7 +120,7 @@ impl<'a> PartyAwaitingPosition<'a> {
         rng: &mut T,
     ) -> Result<(PartyAwaitingBitChallenge<'a>, BitCommitment), MPCError> {
         if self.bp_gens.party_capacity <= j {
-            return Err(MPCError::InvalidGeneratorsLength);
+            return Err(MPCError::MPCInvalidGeneratorsLength{});
         }
 
         let bp_share = self.bp_gens.share(j);
@@ -331,7 +331,7 @@ impl PartyAwaitingPolyChallenge {
         // Prevent a malicious dealer from annihilating the blinding
         // factors by supplying a zero challenge.
         if pc.x == Scalar::ZERO {
-            return Err(MPCError::MaliciousDealer);
+            return Err(MPCError::MaliciousDealer{});
         }
 
         let t_blinding_poly = util::Poly2(

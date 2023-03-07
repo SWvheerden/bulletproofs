@@ -1,12 +1,14 @@
 //! Errors related to proving and verifying proofs.
 
 extern crate alloc;
-use alloc::vec::Vec;
+use alloc::vec::Vec; 
+use alloc::string::String;
 
 #[cfg(feature = "std")]
 use thiserror::Error;
 
 use snafu::prelude::*;
+
 
 /// Represents an error in proof creation, verification, or parsing.
 #[derive(Clone, Debug, Eq, PartialEq, Snafu)]
@@ -51,9 +53,9 @@ pub enum ProofError {
 impl From<MPCError> for ProofError {
     fn from(e: MPCError) -> ProofError {
         match e {
-            MPCError::InvalidBitsize => ProofError::InvalidBitsize{},
-            MPCError::InvalidAggregation => ProofError::InvalidAggregation{},
-            MPCError::InvalidGeneratorsLength => ProofError::InvalidGeneratorsLength{},
+            MPCError::MPCInvalidBitsize{} => ProofError::InvalidBitsize{},
+            MPCError::MPCInvalidAggregation{} => ProofError::InvalidAggregation{},
+            MPCError::MPCInvalidGeneratorsLength{} => ProofError::InvalidGeneratorsLength{},
             _ => ProofError::ProvingError{reason: e.to_string()},
         }
     }
@@ -66,48 +68,38 @@ impl From<MPCError> for ProofError {
 /// API: although the MPC protocol is used internally for single-party
 /// proving, its API should not expose the complexity of the MPC
 /// protocol.
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Clone, Debug, Eq, PartialEq, Snafu)]
 pub enum MPCError {
     /// This error occurs when the dealer gives a zero challenge,
     /// which would annihilate the blinding factors.
-    #[cfg_attr(feature = "std", error("Dealer gave a malicious challenge value."))]
-    MaliciousDealer,
+    #[snafu(display("Dealer gave a malicious challenge value."))]
+    MaliciousDealer{},
     /// This error occurs when attempting to create a proof with
     /// bitsize other than \\(8\\), \\(16\\), \\(32\\), or \\(64\\).
-    #[cfg_attr(feature = "std", error("Invalid bitsize, must have n = 8,16,32,64"))]
-    InvalidBitsize,
+    #[snafu(display("Invalid bitsize, must have n = 8,16,32,64"))]
+    MPCInvalidBitsize{},
     /// This error occurs when attempting to create an aggregated
     /// proof with non-power-of-two aggregation size.
-    #[cfg_attr(
-        feature = "std",
-        error("Invalid aggregation size, m must be a power of 2")
-    )]
-    InvalidAggregation,
+    #[snafu(display("Invalid aggregation size, m must be a power of 2"))]
+    MPCInvalidAggregation{},
     /// This error occurs when there are insufficient generators for the proof.
-    #[cfg_attr(
-        feature = "std",
-        error("Invalid generators size, too few generators for proof")
-    )]
-    InvalidGeneratorsLength,
+    #[snafu(display("Invalid generators size, too few generators for proof"))]
+    MPCInvalidGeneratorsLength{},
     /// This error occurs when the dealer is given the wrong number of
     /// value commitments.
-    #[cfg_attr(feature = "std", error("Wrong number of value commitments"))]
-    WrongNumBitCommitments,
+    #[snafu(display("Wrong number of value commitment"))]
+    WrongNumBitCommitments{},
     /// This error occurs when the dealer is given the wrong number of
     /// polynomial commitments.
-    #[cfg_attr(feature = "std", error("Wrong number of value commitments"))]
-    WrongNumPolyCommitments,
+    #[snafu(display("Wrong number of value commitments"))]
+    WrongNumPolyCommitments{},
     /// This error occurs when the dealer is given the wrong number of
     /// proof shares.
-    #[cfg_attr(feature = "std", error("Wrong number of proof shares"))]
-    WrongNumProofShares,
+    #[snafu(display("Wrong number of proof shares"))]
+    WrongNumProofShares{},
     /// This error occurs when one or more parties submit malformed
     /// proof shares.
-    #[cfg_attr(
-        feature = "std",
-        error("Malformed proof shares from parties {bad_shares:?}")
-    )]
+    #[snafu(display("Malformed proof shares from parties"))]
     MalformedProofShares {
         /// A vector with the indexes of the parties whose shares were malformed.
         bad_shares: Vec<usize>,

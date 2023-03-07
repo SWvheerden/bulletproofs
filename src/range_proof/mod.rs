@@ -1304,7 +1304,7 @@ mod tests {
 
         let maybe_share0 = party0.apply_challenge(&poly_challenge);
 
-        assert!(maybe_share0.unwrap_err() == MPCError::MaliciousDealer);
+        assert!(maybe_share0.unwrap_err() == MPCError::MaliciousDealer{});
     }
 
     #[test]

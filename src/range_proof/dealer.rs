@@ -42,16 +42,16 @@ impl Dealer {
         m: usize,
     ) -> Result<DealerAwaitingBitCommitments<'a, 'b>, MPCError> {
         if !(n == 8 || n == 16 || n == 32 || n == 64) {
-            return Err(MPCError::InvalidBitsize);
+            return Err(MPCError::MPCInvalidBitsize{});
         }
         if !m.is_power_of_two() {
-            return Err(MPCError::InvalidAggregation);
+            return Err(MPCError::MPCInvalidAggregation{});
         }
         if bp_gens.gens_capacity < n {
-            return Err(MPCError::InvalidGeneratorsLength);
+            return Err(MPCError::MPCInvalidGeneratorsLength{});
         }
         if bp_gens.party_capacity < m {
-            return Err(MPCError::InvalidGeneratorsLength);
+            return Err(MPCError::MPCInvalidGeneratorsLength{});
         }
 
         // At the end of the protocol, the dealer will attempt to
@@ -100,7 +100,7 @@ impl<'a, 'b> DealerAwaitingBitCommitments<'a, 'b> {
         bit_commitments: Vec<BitCommitment>,
     ) -> Result<(DealerAwaitingPolyCommitments<'a, 'b>, BitChallenge), MPCError> {
         if self.m != bit_commitments.len() {
-            return Err(MPCError::WrongNumBitCommitments);
+            return Err(MPCError::WrongNumBitCommitments{});
         }
 
         // Commit each V_j individually
@@ -162,7 +162,7 @@ impl<'a, 'b> DealerAwaitingPolyCommitments<'a, 'b> {
         poly_commitments: Vec<PolyCommitment>,
     ) -> Result<(DealerAwaitingProofShares<'a, 'b>, PolyChallenge), MPCError> {
         if self.m != poly_commitments.len() {
-            return Err(MPCError::WrongNumPolyCommitments);
+            return Err(MPCError::WrongNumPolyCommitments{});
         }
 
         // Commit sums of T_1_j's and T_2_j's
@@ -225,7 +225,7 @@ impl<'a, 'b> DealerAwaitingProofShares<'a, 'b> {
     /// validates the proof shares.
     fn assemble_shares(&mut self, proof_shares: &[ProofShare]) -> Result<RangeProof, MPCError> {
         if self.m != proof_shares.len() {
-            return Err(MPCError::WrongNumProofShares);
+            return Err(MPCError::WrongNumProofShares{});
         }
 
         // Validate lengths for each share

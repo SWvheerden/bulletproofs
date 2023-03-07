@@ -204,10 +204,10 @@ impl InnerProductProof {
         if lg_n >= 32 {
             // 4 billion multiplications should be enough for anyone
             // and this check prevents overflow in 1<<lg_n below.
-            return Err(ProofError::VerificationError);
+            return Err(ProofError::VerificationError{});
         }
         if n != (1 << lg_n) {
-            return Err(ProofError::VerificationError);
+            return Err(ProofError::VerificationError{});
         }
 
         transcript.innerproduct_domain_sep(n as u64);
@@ -296,13 +296,13 @@ impl InnerProductProof {
         let Ls = self
             .L_vec
             .iter()
-            .map(|p| p.decompress().ok_or(ProofError::VerificationError))
+            .map(|p| p.decompress().ok_or(ProofError::VerificationError{}))
             .collect::<Result<Vec<_>, _>>()?;
 
         let Rs = self
             .R_vec
             .iter()
-            .map(|p| p.decompress().ok_or(ProofError::VerificationError))
+            .map(|p| p.decompress().ok_or(ProofError::VerificationError{}))
             .collect::<Result<Vec<_>, _>>()?;
 
         let expect_P = RistrettoPoint::vartime_multiscalar_mul(
@@ -321,7 +321,7 @@ impl InnerProductProof {
         if expect_P == *P {
             Ok(())
         } else {
-            Err(ProofError::VerificationError)
+            Err(ProofError::VerificationError{})
         }
     }
 
@@ -374,18 +374,18 @@ impl InnerProductProof {
     pub fn from_bytes(slice: &[u8]) -> Result<InnerProductProof, ProofError> {
         let b = slice.len();
         if b % 32 != 0 {
-            return Err(ProofError::FormatError);
+            return Err(ProofError::FormatError{});
         }
         let num_elements = b / 32;
         if num_elements < 2 {
-            return Err(ProofError::FormatError);
+            return Err(ProofError::FormatError{});
         }
         if (num_elements - 2) % 2 != 0 {
-            return Err(ProofError::FormatError);
+            return Err(ProofError::FormatError{});
         }
         let lg_n = (num_elements - 2) / 2;
         if lg_n >= 32 {
-            return Err(ProofError::FormatError);
+            return Err(ProofError::FormatError{});
         }
 
         use crate::util::read32;
@@ -400,9 +400,9 @@ impl InnerProductProof {
 
         let pos = 2 * lg_n * 32;
         let a =
-        Into::<Option<Scalar>>::into(Scalar::from_canonical_bytes(read32(&slice[pos..]))).ok_or(ProofError::FormatError)?;
+        Into::<Option<Scalar>>::into(Scalar::from_canonical_bytes(read32(&slice[pos..]))).ok_or(ProofError::FormatError{})?;
         let b =  Into::<Option<Scalar>>::into(Scalar::from_canonical_bytes(read32(&slice[pos + 32..])))
-            .ok_or(ProofError::FormatError)?;
+            .ok_or(ProofError::FormatError{})?;
 
         Ok(InnerProductProof { L_vec, R_vec, a, b })
     }

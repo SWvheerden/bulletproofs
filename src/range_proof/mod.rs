@@ -445,7 +445,7 @@ impl RangeProof {
         let (pvt_rewind_key, pvt_blinding_key, proof_message, blindings) =
             if values.len() + 4 == blindings.len() {
                 if blindings[blindings.len() - 4] != RangeProof::get_rewind_key_separator() {
-                    return Err(ProofError::InvalidRewindKeySeparator);
+                    return Err(ProofError::InvalidRewindKeySeparator{});
                 }
                 let rewind_key = blindings[blindings.len() - 3].to_owned();
                 let blinding_key = blindings[blindings.len() - 2].to_owned();
@@ -466,7 +466,7 @@ impl RangeProof {
             };
 
         if values.len() != blindings.len() {
-            return Err(ProofError::WrongNumBlindingFactors);
+            return Err(ProofError::WrongNumBlindingFactors{});
         }
 
         let dealer = Dealer::new(bp_gens, pc_gens, transcript, n, values.len())?;
@@ -594,13 +594,13 @@ impl RangeProof {
         // First, replay the "interactive" protocol using the proof
         // data to recompute all challenges.
         if !(n == 8 || n == 16 || n == 32 || n == 64) {
-            return Err(ProofError::InvalidBitsize);
+            return Err(ProofError::InvalidBitsize{});
         }
         if bp_gens.gens_capacity < n {
-            return Err(ProofError::InvalidGeneratorsLength);
+            return Err(ProofError::InvalidGeneratorsLength{});
         }
         if bp_gens.party_capacity < m {
-            return Err(ProofError::InvalidGeneratorsLength);
+            return Err(ProofError::InvalidGeneratorsLength{});
         }
 
         transcript.rangeproof_domain_sep(n as u64, m as u64);
@@ -680,12 +680,12 @@ impl RangeProof {
                 .chain(bp_gens.H(n, m).map(|&x| Some(x)))
                 .chain(value_commitments.iter().map(|V| V.decompress())),
         )
-        .ok_or_else(|| ProofError::VerificationError)?;
+        .ok_or_else(|| ProofError::VerificationError{})?;
 
         if mega_check.is_identity() {
             Ok(())
         } else {
-            Err(ProofError::VerificationError)
+            Err(ProofError::VerificationError{})
         }
     }
 
@@ -741,10 +741,10 @@ impl RangeProof {
     /// Returns an error if the byte slice cannot be parsed into a `RangeProof`.
     pub fn from_bytes(slice: &[u8]) -> Result<RangeProof, ProofError> {
         if slice.len() % 32 != 0 {
-            return Err(ProofError::FormatError);
+            return Err(ProofError::FormatError{});
         }
         if slice.len() < 7 * 32 {
-            return Err(ProofError::FormatError);
+            return Err(ProofError::FormatError{});
         }
 
         use crate::util::read32;
@@ -756,11 +756,11 @@ impl RangeProof {
         let T_2 = CompressedRistretto(read32(&slice[3 * 32..]));
 
         let t_x = Into::<Option<Scalar>>::into(Scalar::from_canonical_bytes(read32(&slice[4 * 32..])))
-            .ok_or(ProofError::FormatError)?;
+            .ok_or(ProofError::FormatError{})?;
         let t_x_blinding = Into::<Option<Scalar>>::into(Scalar::from_canonical_bytes(read32(&slice[5 * 32..])))
-            .ok_or(ProofError::FormatError)?;
+            .ok_or(ProofError::FormatError{})?;
         let e_blinding = Into::<Option<Scalar>>::into(Scalar::from_canonical_bytes(read32(&slice[6 * 32..])))
-            .ok_or(ProofError::FormatError)?;
+            .ok_or(ProofError::FormatError{})?;
 
         let ipp_proof = InnerProductProof::from_bytes(&slice[7 * 32..])?;
 
@@ -816,7 +816,7 @@ impl RangeProof {
         //Verify if the correct value and blinding factor was extracted
         let value_commitment_calculated = pc_gens.commit(value.into(), v_blinding).compress();
         if value_commitment.as_bytes() != value_commitment_calculated.as_bytes() {
-            return Err(ProofError::InvalidCommitmentExtracted);
+            return Err(ProofError::InvalidCommitmentExtracted{});
         } else {
             Ok((value, v_blinding, proof_message))
         }
@@ -863,13 +863,13 @@ impl RangeProof {
         // First, replay the "interactive" protocol using the proof
         // data to recompute all challenges.
         if !(n == 8 || n == 16 || n == 32 || n == 64) {
-            return Err(ProofError::InvalidBitsize);
+            return Err(ProofError::InvalidBitsize{});
         }
         if bp_gens.gens_capacity < n {
-            return Err(ProofError::InvalidGeneratorsLength);
+            return Err(ProofError::InvalidGeneratorsLength{});
         }
         if bp_gens.party_capacity < 1 {
-            return Err(ProofError::InvalidGeneratorsLength);
+            return Err(ProofError::InvalidGeneratorsLength{});
         }
 
         transcript.rangeproof_domain_sep(n as u64, 1u64);

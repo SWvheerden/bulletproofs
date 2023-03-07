@@ -271,7 +271,7 @@ fn range_proof_rewind() {
             &blinding_nonce_1,
             &blinding_nonce_2,
         ),
-        Err(ProofError::InvalidCommitmentExtracted)
+        Err(ProofError::InvalidCommitmentExtracted{})
     );
     let mut rewind_transcript = Transcript::new(b"Bulletproof-Rewind Test");
     assert_eq!(
@@ -286,7 +286,7 @@ fn range_proof_rewind() {
             &blinding_nonce_1,
             &blinding_nonce_2,
         ),
-        Err(ProofError::InvalidCommitmentExtracted)
+        Err(ProofError::InvalidCommitmentExtracted{})
     );
     let mut rewind_transcript = Transcript::new(b"Bulletproof-Rewind Test");
     assert_eq!(
@@ -301,7 +301,7 @@ fn range_proof_rewind() {
             &wrong_nonce,
             &blinding_nonce_2,
         ),
-        Err(ProofError::InvalidCommitmentExtracted)
+        Err(ProofError::InvalidCommitmentExtracted{})
     );
     let mut rewind_transcript = Transcript::new(b"Bulletproof-Rewind Test");
     assert_eq!(
@@ -316,6 +316,6 @@ fn range_proof_rewind() {
             &blinding_nonce_1,
             &wrong_nonce,
         ),
-        Err(ProofError::InvalidCommitmentExtracted)
+        Err(ProofError::InvalidCommitmentExtracted{})
     );
 }

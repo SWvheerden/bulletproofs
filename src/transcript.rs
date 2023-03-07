@@ -80,7 +80,7 @@ impl TranscriptProtocol for Transcript {
         use curve25519_dalek::traits::IsIdentity;
 
         if point.is_identity() {
-            Err(ProofError::VerificationError)
+            Err(ProofError::VerificationError{})
         } else {
             Ok(self.append_message(label, point.as_bytes()))
         }

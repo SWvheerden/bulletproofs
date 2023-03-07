@@ -6,66 +6,55 @@ use alloc::vec::Vec;
 #[cfg(feature = "std")]
 use thiserror::Error;
 
+use snafu::prelude::*;
+
 /// Represents an error in proof creation, verification, or parsing.
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Clone, Debug, Eq, PartialEq, Snafu)]
 pub enum ProofError {
     /// This error occurs when a proof failed to verify.
-    #[cfg_attr(feature = "std", error("Proof verification failed."))]
-    VerificationError,
+    #[snafu(display("Proof verification failed."))]
+    VerificationError{},
     /// This error occurs when the proof encoding is malformed.
-    #[cfg_attr(feature = "std", error("Proof data could not be parsed."))]
-    FormatError,
+    #[snafu(display("Proof data could not be parsed."))]
+    FormatError{},
     /// This error occurs during proving if the number of blinding
     /// factors does not match the number of values.
-    #[cfg_attr(feature = "std", error("Wrong number of blinding factors supplied."))]
-    WrongNumBlindingFactors,
+    #[snafu(display("Wrong number of blinding factors supplied."))]
+    WrongNumBlindingFactors{},
     /// This error occurs when attempting to create a proof with
     /// bitsize other than \\(8\\), \\(16\\), \\(32\\), or \\(64\\).
-    #[cfg_attr(feature = "std", error("Invalid bitsize, must have n = 8,16,32,64."))]
-    InvalidBitsize,
+    #[snafu(display("Invalid bitsize, must have n = 8,16,32,64."))]
+    InvalidBitsize{},
     /// This error occurs when attempting to create an aggregated
     /// proof with non-power-of-two aggregation size.
-    #[cfg_attr(
-        feature = "std",
-        error("Invalid aggregation size, m must be a power of 2.")
-    )]
-    InvalidAggregation,
+    #[snafu(display("Invalid aggregation size, m must be a power of 2."))]
+    InvalidAggregation{},
     /// This error occurs when there are insufficient generators for the proof.
-    #[cfg_attr(
-        feature = "std",
-        error("Invalid generators size, too few generators for proof")
-    )]
-    InvalidGeneratorsLength,
+    #[snafu(display("Invalid generators size, too few generators for proof"))]
+    InvalidGeneratorsLength{},
     /// This error results from an internal error during proving.
     ///
     /// The single-party prover is implemented by performing
     /// multiparty computation with ourselves.  However, because the
     /// MPC protocol is not exposed by the single-party API, we
     /// consider its errors to be internal errors.
-    #[cfg_attr(feature = "std", error("Internal error during proof creation: {0}"))]
-    ProvingError(MPCError),
+    #[snafu(display("Internal error during proof creation: `{reason}"))]
+    ProvingError{reason: String},
     /// This error results from trying to rewind a proof with the wrong rewind nonce
-    #[cfg_attr(
-        feature = "std",
-        error("Rewinding the proof failed, invalid commitment extracted")
-    )]
-    InvalidCommitmentExtracted,
+    #[snafu(display("Rewinding the proof failed, invalid commitment extracted"))]
+    InvalidCommitmentExtracted{},
     /// This error results from trying to rewind a proof with an invalid rewind key separator
-    #[cfg_attr(
-        feature = "std",
-        error("Trying to rewind a proof with the wrong rewind key separator")
-    )]
-    InvalidRewindKeySeparator,
+    #[snafu(display("Trying to rewind a proof with the wrong rewind key separator"))]
+    InvalidRewindKeySeparator{},
 }
 
 impl From<MPCError> for ProofError {
     fn from(e: MPCError) -> ProofError {
         match e {
-            MPCError::InvalidBitsize => ProofError::InvalidBitsize,
-            MPCError::InvalidAggregation => ProofError::InvalidAggregation,
-            MPCError::InvalidGeneratorsLength => ProofError::InvalidGeneratorsLength,
-            _ => ProofError::ProvingError(e),
+            MPCError::InvalidBitsize => ProofError::InvalidBitsize{},
+            MPCError::InvalidAggregation => ProofError::InvalidAggregation{},
+            MPCError::InvalidGeneratorsLength => ProofError::InvalidGeneratorsLength{},
+            _ => ProofError::ProvingError{reason: e.to_string()},
         }
     }
 }
@@ -157,9 +146,9 @@ pub enum R1CSError {
 impl From<ProofError> for R1CSError {
     fn from(e: ProofError) -> R1CSError {
         match e {
-            ProofError::InvalidGeneratorsLength => R1CSError::InvalidGeneratorsLength,
-            ProofError::FormatError => R1CSError::FormatError,
-            ProofError::VerificationError => R1CSError::VerificationError,
+            ProofError::InvalidGeneratorsLength{} => R1CSError::InvalidGeneratorsLength,
+            ProofError::FormatError{} => R1CSError::FormatError,
+            ProofError::VerificationError{} => R1CSError::VerificationError,
             _ => panic!("unexpected error type in conversion"),
         }
     }

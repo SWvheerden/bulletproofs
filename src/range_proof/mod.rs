@@ -825,7 +825,6 @@ impl RangeProof {
     /// Rewinds a rangeproof for a given value commitment \\(V\\)
     /// to get the value and 23 bytes extra data only. If the wrong
     /// rewind_nonce is provided, garbage data will be returned.
-    #[cfg(feature = "std")]
     pub fn rewind_single_get_value_only(
         &self,
         bp_gens: &BulletproofGens,

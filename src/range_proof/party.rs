@@ -13,22 +13,25 @@
 extern crate alloc;
 use alloc::vec::Vec;
 use core::iter;
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
-use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::traits::MultiscalarMul;
+
+use curve25519_dalek::{
+    ristretto::{CompressedRistretto, RistrettoPoint},
+    scalar::Scalar,
+    traits::MultiscalarMul,
+};
+#[cfg(feature = "std")]
+use rand::thread_rng;
 use rand_core::{CryptoRng, RngCore};
 use zeroize::Zeroize;
 
-use crate::errors::MPCError;
-use crate::generators::{BulletproofGens, PedersenGens};
-use crate::util;
-
-#[cfg(feature = "std")]
-use rand::thread_rng;
-
 use super::messages::*;
-use crate::range_proof::{get_rewind_nonce_from_pvt_key, get_secret_nonce_from_pvt_key};
-use crate::util::{add_bytes_to_word, xor_32_bytes};
+use crate::{
+    errors::MPCError,
+    generators::{BulletproofGens, PedersenGens},
+    range_proof::{get_rewind_nonce_from_pvt_key, get_secret_nonce_from_pvt_key},
+    util,
+    util::{add_bytes_to_word, xor_32_bytes},
+};
 
 /// Used to construct a party for the aggregated rangeproof MPC protocol.
 pub struct Party {}
@@ -46,10 +49,10 @@ impl Party {
         proof_message: Scalar,
     ) -> Result<PartyAwaitingPosition<'a>, MPCError> {
         if !(n == 8 || n == 16 || n == 32 || n == 64) {
-            return Err(MPCError::MPCInvalidBitsize{});
+            return Err(MPCError::MPCInvalidBitsize {});
         }
         if bp_gens.gens_capacity < n {
-            return Err(MPCError::MPCInvalidGeneratorsLength{});
+            return Err(MPCError::MPCInvalidGeneratorsLength {});
         }
 
         let V = pc_gens.commit(v.into(), v_blinding).compress();
@@ -105,10 +108,7 @@ impl<'a> PartyAwaitingPosition<'a> {
     /// Assigns a position in the aggregated proof to this party,
     /// allowing the party to commit to the bits of their value.
     #[cfg(feature = "std")]
-    pub fn assign_position(
-        self,
-        j: usize,
-    ) -> Result<(PartyAwaitingBitChallenge<'a>, BitCommitment), MPCError> {
+    pub fn assign_position(self, j: usize) -> Result<(PartyAwaitingBitChallenge<'a>, BitCommitment), MPCError> {
         self.assign_position_with_rng(j, &mut thread_rng())
     }
 
@@ -120,7 +120,7 @@ impl<'a> PartyAwaitingPosition<'a> {
         rng: &mut T,
     ) -> Result<(PartyAwaitingBitChallenge<'a>, BitCommitment), MPCError> {
         if self.bp_gens.party_capacity <= j {
-            return Err(MPCError::MPCInvalidGeneratorsLength{});
+            return Err(MPCError::MPCInvalidGeneratorsLength {});
         }
 
         let bp_share = self.bp_gens.share(j);
@@ -148,8 +148,7 @@ impl<'a> PartyAwaitingPosition<'a> {
         let s_blinding = if self.rewind_nonce_2 == Scalar::default() {
             Scalar::random(rng)
         } else {
-            let value_and_extra_data =
-                add_bytes_to_word(*self.proof_message.as_bytes(), &self.v.to_le_bytes(), 0);
+            let value_and_extra_data = add_bytes_to_word(*self.proof_message.as_bytes(), &self.v.to_le_bytes(), 0);
             let xor = xor_32_bytes(
                 &Scalar::from_bytes_mod_order(value_and_extra_data).as_bytes(),
                 &self.rewind_nonce_2.as_bytes(),
@@ -218,10 +217,7 @@ impl<'a> PartyAwaitingBitChallenge<'a> {
     /// Receive a [`BitChallenge`] from the dealer and use it to
     /// compute commitments to the party's polynomial coefficients.
     #[cfg(feature = "std")]
-    pub fn apply_challenge(
-        self,
-        vc: &BitChallenge,
-    ) -> (PartyAwaitingPolyChallenge, PolyCommitment) {
+    pub fn apply_challenge(self, vc: &BitChallenge) -> (PartyAwaitingPolyChallenge, PolyCommitment) {
         self.apply_challenge_with_rng(vc, &mut thread_rng())
     }
 
@@ -272,10 +268,7 @@ impl<'a> PartyAwaitingBitChallenge<'a> {
         let T_1 = self.pc_gens.commit(t_poly.1, t_1_blinding);
         let T_2 = self.pc_gens.commit(t_poly.2, t_2_blinding);
 
-        let poly_commitment = PolyCommitment {
-            T_1_j: T_1,
-            T_2_j: T_2,
-        };
+        let poly_commitment = PolyCommitment { T_1_j: T_1, T_2_j: T_2 };
 
         let papc = PartyAwaitingPolyChallenge {
             v_blinding: self.v_blinding,
@@ -331,14 +324,10 @@ impl PartyAwaitingPolyChallenge {
         // Prevent a malicious dealer from annihilating the blinding
         // factors by supplying a zero challenge.
         if pc.x == Scalar::ZERO {
-            return Err(MPCError::MaliciousDealer{});
+            return Err(MPCError::MaliciousDealer {});
         }
 
-        let t_blinding_poly = util::Poly2(
-            self.offset_zz * self.v_blinding,
-            self.t_1_blinding,
-            self.t_2_blinding,
-        );
+        let t_blinding_poly = util::Poly2(self.offset_zz * self.v_blinding, self.t_1_blinding, self.t_2_blinding);
 
         let t_x = self.t_poly.eval(pc.x);
         let t_x_blinding = t_blinding_poly.eval(pc.x);

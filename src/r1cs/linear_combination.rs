@@ -1,8 +1,11 @@
 //! Definition of linear combinations.
 
+use core::{
+    iter::FromIterator,
+    ops::{Add, Mul, Neg, Sub},
+};
+
 use curve25519_dalek::scalar::Scalar;
-use core::iter::FromIterator;
-use core::ops::{Add, Mul, Neg, Sub};
 
 /// Represents a variable in a constraint system.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -119,9 +122,7 @@ impl Default for LinearCombination {
 
 impl FromIterator<(Variable, Scalar)> for LinearCombination {
     fn from_iter<T>(iter: T) -> Self
-    where
-        T: IntoIterator<Item = (Variable, Scalar)>,
-    {
+    where T: IntoIterator<Item = (Variable, Scalar)> {
         LinearCombination {
             terms: iter.into_iter().collect(),
         }
@@ -130,9 +131,7 @@ impl FromIterator<(Variable, Scalar)> for LinearCombination {
 
 impl<'a> FromIterator<&'a (Variable, Scalar)> for LinearCombination {
     fn from_iter<T>(iter: T) -> Self
-    where
-        T: IntoIterator<Item = &'a (Variable, Scalar)>,
-    {
+    where T: IntoIterator<Item = &'a (Variable, Scalar)> {
         LinearCombination {
             terms: iter.into_iter().cloned().collect(),
         }

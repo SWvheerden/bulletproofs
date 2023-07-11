@@ -2,19 +2,23 @@
 //! in an aggregated multiparty computation protocol.
 //!
 //! For more explanation of how the `dealer`, `party`, and `messages` modules orchestrate the protocol execution, see
-//! [the API for the aggregated multiparty computation protocol](../aggregation/index.html#api-for-the-aggregated-multiparty-computation-protocol).
+//! [the API for the aggregated multiparty computation
+//! protocol](../aggregation/index.html#api-for-the-aggregated-multiparty-computation-protocol).
 
 extern crate alloc;
 
 use alloc::vec::Vec;
 use core::iter;
-use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
-use curve25519_dalek::scalar::Scalar;
+
+use curve25519_dalek::{
+    ristretto::{CompressedRistretto, RistrettoPoint},
+    scalar::Scalar,
+};
 
 use crate::generators::{BulletproofGens, PedersenGens};
 
 /// A commitment to the bits of a party's value.
-#[derive( Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct BitCommitment {
     pub(super) V_j: CompressedRistretto,
@@ -47,7 +51,7 @@ pub struct PolyChallenge {
 
 /// A party's proof share, ready for aggregation into the final
 /// [`RangeProof`](::RangeProof).
-#[derive( Clone, Debug)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ProofShare {
     pub(super) t_x: Scalar,
@@ -59,12 +63,7 @@ pub struct ProofShare {
 
 impl ProofShare {
     /// Checks consistency of all sizes in the proof share and returns the size of the l/r vector.
-    pub(super) fn check_size(
-        &self,
-        expected_n: usize,
-        bp_gens: &BulletproofGens,
-        j: usize,
-    ) -> Result<(), ()> {
+    pub(super) fn check_size(&self, expected_n: usize, bp_gens: &BulletproofGens, j: usize) -> Result<(), ()> {
         if self.l_vec.len() != expected_n {
             return Err(());
         }
@@ -98,8 +97,7 @@ impl ProofShare {
     ) -> Result<(), ()> {
         use curve25519_dalek::traits::{IsIdentity, VartimeMultiscalarMul};
 
-        use crate::inner_product_proof::inner_product;
-        use crate::util;
+        use crate::{inner_product_proof::inner_product, util};
 
         let n = self.l_vec.len();
 

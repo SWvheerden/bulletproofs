@@ -300,7 +300,7 @@ impl RangeProof {
         blindings.push(RangeProof::get_rewind_key_separator());
         blindings.push(*pvt_rewind_key);
         blindings.push(*pvt_blinding_key);
-        blindings.push(Scalar::from_bits(add_bytes_to_word(
+        blindings.push(Scalar::from_bytes_mod_order(add_bytes_to_word(
             [0u8; 32],
             proof_message,
             8,
@@ -545,7 +545,7 @@ impl RangeProof {
 
     /// Uniquely identify-able scalar used as a pvt_rewind_key separator
     fn get_rewind_key_separator() -> Scalar {
-        Scalar::from_bits(*RISTRETTO_BASEPOINT_COMPRESSED.as_bytes())
+        Scalar::from_bytes_mod_order(*RISTRETTO_BASEPOINT_COMPRESSED.as_bytes())
     }
 
     /// Verifies a rangeproof for a given value commitment \\(V\\).
@@ -1309,7 +1309,7 @@ mod tests {
     #[test]
     fn rewind_nonce_and_secret_nonce() {
         // Static data
-        let pvt_rewind_key = Scalar::from_bits([
+        let pvt_rewind_key = Scalar::from_bytes_mod_order([
             52, 177, 175, 139, 230, 130, 194, 20, 235, 30, 175, 83, 36, 74, 152, 44, 159, 164, 58,
             224, 1, 145, 79, 3, 28, 84, 255, 124, 182, 63, 105, 2,
         ]);

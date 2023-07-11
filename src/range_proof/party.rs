@@ -151,10 +151,10 @@ impl<'a> PartyAwaitingPosition<'a> {
             let value_and_extra_data =
                 add_bytes_to_word(*self.proof_message.as_bytes(), &self.v.to_le_bytes(), 0);
             let xor = xor_32_bytes(
-                &Scalar::from_bits(value_and_extra_data).as_bytes(),
+                &Scalar::from_bytes_mod_order(value_and_extra_data).as_bytes(),
                 &self.rewind_nonce_2.as_bytes(),
             );
-            Scalar::from_bits(xor)
+            Scalar::from_bytes_mod_order(xor)
         };
         let s_L: Vec<Scalar> = (0..self.n).map(|_| Scalar::random(rng)).collect();
         let s_R: Vec<Scalar> = (0..self.n).map(|_| Scalar::random(rng)).collect();

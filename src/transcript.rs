@@ -1,7 +1,6 @@
 //! Defines a `TranscriptProtocol` trait for using a Merlin transcript.
 
-use curve25519_dalek::ristretto::CompressedRistretto;
-use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::{ristretto::CompressedRistretto, scalar::Scalar};
 use merlin::Transcript;
 
 use crate::errors::ProofError;
@@ -80,7 +79,7 @@ impl TranscriptProtocol for Transcript {
         use curve25519_dalek::traits::IsIdentity;
 
         if point.is_identity() {
-            Err(ProofError::VerificationError{})
+            Err(ProofError::VerificationError {})
         } else {
             Ok(self.append_message(label, point.as_bytes()))
         }

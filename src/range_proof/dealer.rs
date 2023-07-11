@@ -2,7 +2,8 @@
 //! engaging in an aggregated multiparty computation protocol.
 //!
 //! For more explanation of how the `dealer`, `party`, and `messages` modules orchestrate the protocol execution, see
-//! [the API for the aggregated multiparty computation protocol](../aggregation/index.html#api-for-the-aggregated-multiparty-computation-protocol).
+//! [the API for the aggregated multiparty computation
+//! protocol](../aggregation/index.html#api-for-the-aggregated-multiparty-computation-protocol).
 
 use core::iter;
 
@@ -10,24 +11,21 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
-use curve25519_dalek::ristretto::RistrettoPoint;
-use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::{ristretto::RistrettoPoint, scalar::Scalar};
 use merlin::Transcript;
-
-use crate::errors::MPCError;
-use crate::generators::{BulletproofGens, PedersenGens};
-use crate::inner_product_proof;
-use crate::range_proof::RangeProof;
-use crate::transcript::TranscriptProtocol;
-
-use rand_core::{CryptoRng, RngCore};
-
-use crate::util;
-
 #[cfg(feature = "std")]
 use rand::thread_rng;
+use rand_core::{CryptoRng, RngCore};
 
 use super::messages::*;
+use crate::{
+    errors::MPCError,
+    generators::{BulletproofGens, PedersenGens},
+    inner_product_proof,
+    range_proof::RangeProof,
+    transcript::TranscriptProtocol,
+    util,
+};
 
 /// Used to construct a dealer for the aggregated rangeproof MPC protocol.
 pub struct Dealer {}
@@ -42,16 +40,16 @@ impl Dealer {
         m: usize,
     ) -> Result<DealerAwaitingBitCommitments<'a, 'b>, MPCError> {
         if !(n == 8 || n == 16 || n == 32 || n == 64) {
-            return Err(MPCError::MPCInvalidBitsize{});
+            return Err(MPCError::MPCInvalidBitsize {});
         }
         if !m.is_power_of_two() {
-            return Err(MPCError::MPCInvalidAggregation{});
+            return Err(MPCError::MPCInvalidAggregation {});
         }
         if bp_gens.gens_capacity < n {
-            return Err(MPCError::MPCInvalidGeneratorsLength{});
+            return Err(MPCError::MPCInvalidGeneratorsLength {});
         }
         if bp_gens.party_capacity < m {
-            return Err(MPCError::MPCInvalidGeneratorsLength{});
+            return Err(MPCError::MPCInvalidGeneratorsLength {});
         }
 
         // At the end of the protocol, the dealer will attempt to
@@ -100,7 +98,7 @@ impl<'a, 'b> DealerAwaitingBitCommitments<'a, 'b> {
         bit_commitments: Vec<BitCommitment>,
     ) -> Result<(DealerAwaitingPolyCommitments<'a, 'b>, BitChallenge), MPCError> {
         if self.m != bit_commitments.len() {
-            return Err(MPCError::WrongNumBitCommitments{});
+            return Err(MPCError::WrongNumBitCommitments {});
         }
 
         // Commit each V_j individually
@@ -162,7 +160,7 @@ impl<'a, 'b> DealerAwaitingPolyCommitments<'a, 'b> {
         poly_commitments: Vec<PolyCommitment>,
     ) -> Result<(DealerAwaitingProofShares<'a, 'b>, PolyChallenge), MPCError> {
         if self.m != poly_commitments.len() {
-            return Err(MPCError::WrongNumPolyCommitments{});
+            return Err(MPCError::WrongNumPolyCommitments {});
         }
 
         // Commit sums of T_1_j's and T_2_j's
@@ -225,17 +223,15 @@ impl<'a, 'b> DealerAwaitingProofShares<'a, 'b> {
     /// validates the proof shares.
     fn assemble_shares(&mut self, proof_shares: &[ProofShare]) -> Result<RangeProof, MPCError> {
         if self.m != proof_shares.len() {
-            return Err(MPCError::WrongNumProofShares{});
+            return Err(MPCError::WrongNumProofShares {});
         }
 
         // Validate lengths for each share
         let mut bad_shares = Vec::<usize>::new(); // no allocations until we append
         for (j, share) in proof_shares.iter().enumerate() {
-            share
-                .check_size(self.n, &self.bp_gens, j)
-                .unwrap_or_else(|_| {
-                    bad_shares.push(j);
-                });
+            share.check_size(self.n, &self.bp_gens, j).unwrap_or_else(|_| {
+                bad_shares.push(j);
+            });
         }
 
         if bad_shares.len() > 0 {
@@ -247,8 +243,7 @@ impl<'a, 'b> DealerAwaitingProofShares<'a, 'b> {
         let e_blinding: Scalar = proof_shares.iter().map(|ps| ps.e_blinding).sum();
 
         self.transcript.append_scalar(b"t_x", &t_x);
-        self.transcript
-            .append_scalar(b"t_x_blinding", &t_x_blinding);
+        self.transcript.append_scalar(b"t_x_blinding", &t_x_blinding);
         self.transcript.append_scalar(b"e_blinding", &e_blinding);
 
         // Get a challenge value to combine statements for the IPP
@@ -297,7 +292,6 @@ impl<'a, 'b> DealerAwaitingProofShares<'a, 'b> {
     /// `ProofShare`s were well-formed.
     ///
     /// This is a convenience wrapper around receive_shares_with_rng
-    ///
     #[cfg(feature = "std")]
     pub fn receive_shares(self, proof_shares: &[ProofShare]) -> Result<RangeProof, MPCError> {
         self.receive_shares_with_rng(proof_shares, &mut thread_rng())
@@ -345,7 +339,7 @@ impl<'a, 'b> DealerAwaitingProofShares<'a, 'b> {
                     &self.poly_commitments[j],
                     &self.poly_challenge,
                 ) {
-                    Ok(_) => {}
+                    Ok(_) => {},
                     Err(_) => bad_shares.push(j),
                 }
             }
@@ -367,10 +361,7 @@ impl<'a, 'b> DealerAwaitingProofShares<'a, 'b> {
     /// [`receive_shares`](DealerAwaitingProofShares::receive_shares),
     /// which validates that all shares are well-formed, or else
     /// detects which party(ies) submitted malformed shares.
-    pub fn receive_trusted_shares(
-        mut self,
-        proof_shares: &[ProofShare],
-    ) -> Result<RangeProof, MPCError> {
+    pub fn receive_trusted_shares(mut self, proof_shares: &[ProofShare]) -> Result<RangeProof, MPCError> {
         self.assemble_shares(proof_shares)
     }
 }
